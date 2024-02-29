@@ -4,24 +4,24 @@
 -- Source: https://github.com/nebel-finance/dune-dashboards
 
 
-WITH
-
--- Total supply
-supply AS (
+-- Total supply per day
+WITH supply_polygon AS (
   SELECT
-    block_date,
+    DATE(call_block_time) AS block_date,
     CAST(output_0 AS DOUBLE) / 1e18 AS value
   FROM (
-    SELECT *,
-      DATE(call_block_time) AS block_date,
+    SELECT
+      output_0,
+      call_block_time,
+      -- Only get latest value
       ROW_NUMBER() OVER(
         PARTITION BY DATE(call_block_time)
-        ORDER BY call_block_time DESC, call_trace_address DESC
-      ) AS rn
+        ORDER BY call_block_time DESC
+      ) AS row_num
     FROM stabl_fi_v2_polygon.CASH_call_totalSupply
     WHERE call_success = TRUE
   )
-  WHERE rn = 1
+  WHERE row_num = 1
 ),
 
 -- All wallets
@@ -37,7 +37,7 @@ tx AS (
     w.wallet,
     SUM(IF("to" = w.wallet, CAST(tx.value AS DOUBLE), -CAST(tx.value AS DOUBLE))) / 1e18 AS value
   FROM (
-    SELECT block_date FROM supply
+    SELECT block_date FROM supply_polygon
   ) d
   CROSS JOIN wallet_list w
   LEFT JOIN stabl_fi_v2_polygon.CASH_evt_Transfer tx
@@ -57,7 +57,7 @@ txs AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS balance
   FROM (
-    SELECT block_date FROM supply
+    SELECT block_date FROM supply_polygon
   ) d
   CROSS JOIN wallet_list w
   LEFT JOIN tx ON d.block_date = tx.block_date AND w.wallet = tx.wallet
@@ -106,8 +106,8 @@ dashboard AS (
   SELECT
     s.block_date AS "Date",
     '||' AS "||",
-    s.value AS "Total Supply",
-    s.value - LAG(s.value) OVER(ORDER BY s.block_date) AS "Supply Change",
+    s.value AS "Total Supply (Polygon)",
+    s.value - LAG(s.value) OVER(ORDER BY s.block_date) AS "Supply Change (Polygon)",
     '| ' AS "| ",
     hb."1-100 CASH (b)", hb."100-1K CASH (b)", hb."1K-10K CASH (b)", hb."10K-100K CASH (b)", hb."100K-1M CASH (b)", hb.">1M CASH (b)",
     '|' AS "|",
@@ -115,11 +115,11 @@ dashboard AS (
     h.value - LAG(h.value) OVER(ORDER BY s.block_date) AS "Holder Change",
     ' |' AS " |",
     hw."1-100 CASH (w)", hw."100-1K CASH (w)", hw."1K-10K CASH (w)", hw."10K-100K CASH (w)", hw."100K-1M CASH (w)", hw.">1M CASH (w)"
-  FROM supply s
+  FROM supply_polygon s
   LEFT JOIN holder h ON s.block_date = h.block_date
   LEFT JOIN holder_wallet hw ON s.block_date = hw.block_date
   LEFT JOIN holder_balance hb ON s.block_date = hb.block_date
-  WHERE s.block_date >= DATE('2023-06-01')
+  WHERE s.block_date >= DATE('2023-07-01')
   ORDER BY s.block_date DESC
 )
 
