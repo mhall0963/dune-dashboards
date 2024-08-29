@@ -1,7 +1,8 @@
 -- SPDX-FileCopyrightText: 2023-present Matthew Hall <matt.hall0963@gmail.com>
 -- SPDX-License-Identifier: MPL-2.0
 
--- Source: https://github.com/nebel-finance/dune-dashboards
+-- Source: https://github.com/mhall0963/dune-dashboards
+-- Date: 2024-08-29
 
 
 -- Total supply per day
