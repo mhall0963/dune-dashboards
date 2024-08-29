@@ -1,5 +1,6 @@
 # Dune Dashboards
 Repository with the source for the following Dune dashboards:
+- [BMX Burn](https://dune.com/mhall0963/bmx-burn)
 - [Stabl.fi CASH Overview](https://dune.com/mhall0963/stablfi-cash-overview)
 
 
